@@ -6,6 +6,17 @@
 
 class BiQuadChain;
 
+typedef enum {
+    bq_type_lowpass = 0,
+    bq_type_highpass,
+    bq_type_bandpass,
+    bq_type_notch,
+    bq_type_peak,
+    bq_type_lowshelf,
+    bq_type_highshelf,
+    bq_type_unity
+} bq_type_t;
+
 /** BiQuad class implements a single filter
  *
  * author: T.J.W. Lankhorst <t.j.w.lankhorst@student.utwente.nl>
@@ -61,7 +72,7 @@ class BiQuadChain;
  */
 class BiQuad {
 
-private:
+  private:
 
     double B[3];
     double A[2];
@@ -74,7 +85,7 @@ private:
      */
     void set( double b0, double b1, double b2, double a1, double a2 );
 
-public:
+  public:
 
     /**
      * Initialize a unity TF biquad
@@ -153,6 +164,8 @@ public:
      */
     void setResetStateOnGainChange( bool v );
 
+    friend bool setCoefficients(bq_type_t type, double Fc, double Q, double peakGainDB, BiQuad& bq);
+
 };
 
 /**
@@ -160,11 +173,11 @@ public:
  */
 class BiQuadChain {
 
-private:
+  private:
     std::vector< BiQuad* > biquads;
     std::vector< std::complex<double> > poles_zeros( bool zeros = false );
 
-public:
+  public:
 
     /**
      * Add a BiQuad pointer to the list: bqc.add(&bq);

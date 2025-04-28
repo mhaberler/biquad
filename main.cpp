@@ -14,12 +14,14 @@ BiQuadChain bqc;
 BiQuad bq1( 3.40538e-04, 6.83088e-04, 3.42555e-04, -1.03207e+00, 2.75708e-01 );
 BiQuad bq2( 1.00000e+00, 1.99997e+00, 9.99981e-01, -1.14298e+00, 4.12802e-01 );
 BiQuad bq3( 1.00000e+00, 1.99412e+00, 9.94131e-01, -1.40438e+00, 7.35915e-01 );
+BiQuad bq4;
 
 int main()
 {
 
-    bqc = bq1 * bq2 * bq3;
-
+    // bqc = bq1 * bq2 * bq3;
+    setCoefficients( bq_type_lowpass, 0.1, 0.707, 0.0, bq4 );
+    bqc.add( &bq4 );
     // Find the poles of the filter
     std::cout << "Filter poles" << std::endl;
     std::vector< std::complex<double> > poles = bqc.poles();

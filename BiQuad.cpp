@@ -34,12 +34,15 @@ void BiQuad::PIDF( double Kp, double Ki, double Kd, double N, double Ts  ) {
 
 void BiQuad::set(double b0, double b1, double b2, double a1, double a2) {
 
-    B[0] = b0; B[1] = b1; B[2] = b2;
-    A[0] = a1; A[1] = a2;
+    B[0] = b0;
+    B[1] = b1;
+    B[2] = b2;
+    A[0] = a1;
+    A[1] = a2;
 
     if( resetStateOnGainChange ) {
-        wz[0] = 0; 
-        wz[1] = 0; 
+        wz[0] = 0;
+        wz[1] = 0;
     }
 
 }
@@ -93,7 +96,7 @@ bool BiQuad::stable() {
     return stable;
 }
 
-void BiQuad::setResetStateOnGainChange( bool v ){
+void BiQuad::setResetStateOnGainChange( bool v ) {
     resetStateOnGainChange = v;
 }
 
@@ -129,7 +132,7 @@ std::vector< std::complex<double> > BiQuadChain::poles_zeros( bool zeros ) {
 
     bqs = biquads.size();
 
-    for( i = 0; i < bqs; i++ ){
+    for( i = 0; i < bqs; i++ ) {
         bq = ( zeros ) ? biquads[ i ]->zeros() : biquads[ i ]->poles();
         chain.insert( chain.end(), bq.begin(), bq.end() );
     }
@@ -156,4 +159,118 @@ bool BiQuadChain::stable() {
 BiQuadChain& BiQuadChain::operator*( BiQuad& bq ) {
     add( &bq );
     return *this;
+}
+
+
+
+// Move setCoefficients implementation here, outside the class
+bool setCoefficients(bq_type_t type,
+                     double Fc,
+                     double Q,
+                     double peakGainDB,
+                     BiQuad& bq) {
+    double norm;
+    double V = pow(10, fabs(peakGainDB) / 20.0);
+    double K = tan(M_PI * Fc);
+    double a0, a1, a2, b1, b2;
+    switch (type) {
+        case bq_type_lowpass:
+            norm = 1 / (1 + K / Q + K * K);
+            a0 = K * K * norm;
+            a1 = 2 * a0;
+            a2 = a0;
+            b1 = 2 * (K * K - 1) * norm;
+            b2 = (1 - K / Q + K * K) * norm;
+            break;
+
+        case bq_type_highpass:
+            norm = 1 / (1 + K / Q + K * K);
+            a0 = 1 * norm;
+            a1 = -2 * a0;
+            a2 = a0;
+            b1 = 2 * (K * K - 1) * norm;
+            b2 = (1 - K / Q + K * K) * norm;
+            break;
+
+        case bq_type_bandpass:
+            norm = 1 / (1 + K / Q + K * K);
+            a0 = K / Q * norm;
+            a1 = 0;
+            a2 = -a0;
+            b1 = 2 * (K * K - 1) * norm;
+            b2 = (1 - K / Q + K * K) * norm;
+            break;
+
+        case bq_type_notch:
+            norm = 1 / (1 + K / Q + K * K);
+            a0 = (1 + K * K) * norm;
+            a1 = 2 * (K * K - 1) * norm;
+            a2 = a0;
+            b1 = a1;
+            b2 = (1 - K / Q + K * K) * norm;
+            break;
+
+        case bq_type_peak:
+            if (peakGainDB >= 0) {    // boost
+                norm = 1 / (1 + 1/Q * K + K * K);
+                a0 = (1 + V/Q * K + K * K) * norm;
+                a1 = 2 * (K * K - 1) * norm;
+                a2 = (1 - V/Q * K + K * K) * norm;
+                b1 = a1;
+                b2 = (1 - 1/Q * K + K * K) * norm;
+            } else {  // cut
+                norm = 1 / (1 + V/Q * K + K * K);
+                a0 = (1 + 1/Q * K + K * K) * norm;
+                a1 = 2 * (K * K - 1) * norm;
+                a2 = (1 - 1/Q * K + K * K) * norm;
+                b1 = a1;
+                b2 = (1 - V/Q * K + K * K) * norm;
+            }
+            break;
+        case bq_type_lowshelf:
+            if (peakGainDB >= 0) {    // boost
+                norm = 1 / (1 + sqrt(2) * K + K * K);
+                a0 = (1 + sqrt(2*V) * K + V * K * K) * norm;
+                a1 = 2 * (V * K * K - 1) * norm;
+                a2 = (1 - sqrt(2*V) * K + V * K * K) * norm;
+                b1 = 2 * (K * K - 1) * norm;
+                b2 = (1 - sqrt(2) * K + K * K) * norm;
+            } else {  // cut
+                norm = 1 / (1 + sqrt(2*V) * K + V * K * K);
+                a0 = (1 + sqrt(2) * K + K * K) * norm;
+                a1 = 2 * (K * K - 1) * norm;
+                a2 = (1 - sqrt(2) * K + K * K) * norm;
+                b1 = 2 * (V * K * K - 1) * norm;
+                b2 = (1 - sqrt(2*V) * K + V * K * K) * norm;
+            }
+            break;
+        case bq_type_highshelf:
+            if (peakGainDB >= 0) {    // boost
+                norm = 1 / (1 + sqrt(2) * K + K * K);
+                a0 = (V + sqrt(2*V) * K + K * K) * norm;
+                a1 = 2 * (K * K - V) * norm;
+                a2 = (V - sqrt(2*V) * K + K * K) * norm;
+                b1 = 2 * (K * K - 1) * norm;
+                b2 = (1 - sqrt(2) * K + K * K) * norm;
+            } else {  // cut
+                norm = 1 / (V + sqrt(2*V) * K + K * K);
+                a0 = (1 + sqrt(2) * K + K * K) * norm;
+                a1 = 2 * (K * K - 1) * norm;
+                a2 = (1 - sqrt(2) * K + K * K) * norm;
+                b1 = 2 * (K * K - V) * norm;
+                b2 = (V - sqrt(2*V) * K + K * K) * norm;
+            }
+            break;
+        case bq_type_unity:
+            a0 = 1.0;
+            a1 = 0.0;
+            a2 = 0.0;
+            b1 = 0.0;
+            b2 = 0.0;
+            break;
+        default:
+            return false;
+    }
+    bq.set( a0, a1, a2, b1, b2 );
+    return true;
 }
