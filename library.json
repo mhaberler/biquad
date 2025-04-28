@@ -1,0 +1,35 @@
+{
+    "name": "biquad",
+    "version": "3.4",
+    "description": "biquad is a BiQad filter library based upon https://github.com/tomlankhorst/biquad",
+    "keywords": "signal processing, digital filter",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mhaberler/biquad"
+    },
+    "authors": [
+        {
+            "name": "Tom Lankhorst",
+            "url": "https://github.com/tomlankhorst/biquad"
+        }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/tomlankhorst/biquad",
+    "frameworks": "*",
+    "platforms": "*",
+    "export": {
+        "include": [
+            "BiQuad.h"
+        ],
+        "exclude": [
+            "main.cpp"
+        ]
+    },
+    "build": {
+        "srcFilter": [
+            "+<BiQuad.**>"
+        ],
+        "flags": [
+        ]
+    }
+}
